@@ -21,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 from typing import Any, Iterable
+import zlib
 
 from bitwig_nitro import decompile_nitrobin, serialize_nitrobin
 
@@ -1245,7 +1246,8 @@ def inspect_event_parameter_writer(
 def inspect_note_input_precision(binary: bytes, inputs: list[Any], label: str) -> list[Finding]:
     """Compare persisted audio input precision against the compiled Nitro declarations."""
     try:
-        declarations = decompile_nitrobin(binary).children[0]
+        ast_bytes = zlib.decompress(binary, -15) if binary and binary[0] not in (0x09, 0x0A) else binary
+        declarations = decompile_nitrobin(ast_bytes).children[0]
         component = next(item for item in declarations if getattr(item, "kind", None) == "ComponentDeclaration")
         ports = [item for item in component.children[1] if getattr(item, "kind", None) == "PortDeclaration"
                  and item.children[0].kind.startswith("Input")]
@@ -2118,7 +2120,8 @@ def semantic_check(
         try:
             from llvmlite import binding as llvm
         except ImportError:
-            detail = "LLVM verifier unavailable. Run scripts/setup-preflight.ps1"
+            setup_script = "scripts/setup-preflight.ps1" if os.name == "nt" else "scripts/setup-preflight.sh"
+            detail = f"LLVM verifier unavailable. Run {setup_script}"
             return Check(name, "fail", detail), [Finding("error", "NITRO029", detail, "toolchain", None)]
 
     def unavailable(detail: str) -> tuple[Check, list[Finding]]:
@@ -2231,7 +2234,8 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def skia_check(shader: str) -> Check:
     if importlib.util.find_spec("skia") is None:
-        return Check("SkSL runtime compiler", "fail", "skia-python is unavailable; run scripts/setup-preflight.ps1")
+        setup_script = "scripts/setup-preflight.ps1" if os.name == "nt" else "scripts/setup-preflight.sh"
+        return Check("SkSL runtime compiler", "fail", f"skia-python is unavailable; run {setup_script}")
     import skia  # type: ignore
     try:
         skia.RuntimeEffect.MakeForShader("uniform float3 iResolution;\n" + shader)

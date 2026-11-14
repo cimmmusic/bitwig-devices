@@ -1,12 +1,36 @@
 # Build and preflight
 
-The reference procedure targets Windows x64 and the hash-pinned Bitwig Studio
-6.1.3 compiler. Use uv with Python 3.12 x64, a Rust toolchain with Cargo and a working
-MSVC build environment, and a JDK with `javac` on PATH. The setup downloads
-Python and Rust dependencies on first use. Once those are installed, builds
-and preflight use local files and run with Bitwig closed.
+The reference procedure targets Windows x64 (`windows-x86_64-bitwig-6.1.3`),
+with a Linux x64 profile (`linux-x86_64-bitwig-6.1.7`) also provided. Use
+Python 3.12 x64 (`python3.12 -m venv` or `uv`), a Rust 1.85+ toolchain with
+Cargo (`edition = "2024"`), and a JDK with `javac` (17+) on PATH. The setup
+downloads Python and Rust dependencies on first use. Once those are installed,
+builds and preflight use local files and run with Bitwig closed.
 
 ## One-time setup
+
+### Linux (bash)
+
+From the repository root, adjust `BITWIG` to your Bitwig Studio 6.1.7
+installation path (bundled JRE is under `lib/jre/bin/java` on Linux):
+
+```bash
+python3.12 -m venv .venv
+PYTHON=./.venv/bin/python
+"$PYTHON" -m pip install --disable-pip-version-check setuptools wheel
+"$PYTHON" -m pip install --no-deps --no-build-isolation -e tools/nitro_ast
+./scripts/setup-preflight.sh
+
+BITWIG=/opt/bitwig-studio
+"$PYTHON" scripts/build-local-host-tools.py \
+  --profile-id linux-x86_64-bitwig-6.1.7 \
+  --jar "$BITWIG/bin/bitwig.jar" \
+  --libs "$BITWIG/bin/libs.jar" \
+  --java "$BITWIG/lib/jre/bin/java" \
+  --javac "$(command -v javac)"
+```
+
+### Windows (PowerShell)
 
 From the repository root in PowerShell, adjust `$bitwig` to your own 6.1.3
 installation path.
@@ -34,6 +58,31 @@ test as a separate target. No key or donor device is needed.
 
 ## Run the gate and build
 
+### Linux (bash)
+
+```bash
+PYTHON=./.venv/bin/python
+INPUTS=local/host-tools/linux-x86_64-bitwig-6.1.7/compiler-inputs.json
+DEMO=devices/blueprint-gain
+PROJECT="$DEMO/bitwig-project.linux-6.1.7.json"
+
+"$PYTHON" scripts/device_preflight.py "$DEMO" --project-file "$PROJECT" --compiler-inputs "$INPUTS"
+"$PYTHON" "$DEMO/build.py" --project-file "$PROJECT" --compiler-inputs "$INPUTS"
+"$PYTHON" - <<'PY'
+import hashlib, json
+from pathlib import Path
+
+report = json.loads(Path("build/preflight/polarity.blueprint-gain/report.json").read_text())
+artifact = Path("devices/blueprint-gain/build/linux-6.1.7/Blueprint Gain.bwdevice")
+digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+if report["status"] != "pass" or digest != report["artifactSha256"]:
+    raise SystemExit("Built file does not match the passing preflight")
+print(f"Verified passing artifact: {digest}  {artifact}")
+PY
+```
+
+### Windows (PowerShell)
+
 ```powershell
 $python = '.\.venv\Scripts\python.exe'
 $inputs = 'local/host-tools/windows-x86_64-bitwig-6.1.3/compiler-inputs.json'
@@ -50,9 +99,11 @@ if ($report.status -ne 'pass' -or (Get-FileHash -Algorithm SHA256 -LiteralPath $
 ```
 
 Start with the first failed check or rule ID in the JSON report. Profiles
-check the exact compiler inputs, Nitro syntax, semantic analysis and LLVM IR,
-two clean builds, byte-stable document roundtrips, graph and panel contracts,
-and embedded SkSL compilation in local Skia.
+check the exact compiler inputs, Nitro syntax, semantic analysis and LLVM IR
+(pinned to the Windows 6.1.3 front-end entry points; other profiles skip this
+step with warning `NITRO026`), two clean builds, byte-stable document
+roundtrips, graph and panel contracts, and embedded SkSL compilation in local
+Skia.
 
 `PASS (ready-for-controlled-host-test)` means the artifact is ready for the
 [Bitwig test](BITWIG-TEST.md). Native JIT, browser insertion, real audio,
