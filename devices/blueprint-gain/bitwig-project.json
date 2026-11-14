@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "projectId": "polarity.blueprint-gain",
+  "name": "Blueprint Gain",
+  "surface": "device",
+  "target": {"bitwigVersion": "6.1.3", "platform": "windows-x86_64"},
+  "identity": {
+    "uuid": "e104966a-a53d-4e68-9125-2c8c667c04a2",
+    "creator": "Polarity",
+    "category": "Audio FX"
+  },
+  "presentation": {
+    "type": "audio-fx",
+    "description": "Stereo attenuation with a native gain knob and a SkSL stereo display."
+  },
+  "sources": {"nitro": ["gain.nitro"], "sksl": ["panel.sksl"]},
+  "adapter": {
+    "type": "external-builder",
+    "argv": ["python", "{workspace}/build.py", "--out", "{output}"]
+  },
+  "output": {
+    "path": "build/windows-6.1.3/Blueprint Gain.bwdevice",
+    "libraryPath": "Blueprint Gain.bwdevice"
+  },
+  "preflight": {
+    "profile": "bitwig-6.1.3-hybrid",
+    "expectedNitroInputs": 2,
+    "expectedNitroOutputs": 2,
+    "maxDrawingVectors": 1,
+    "requiredAudioInputSourceClassId": 1371,
+    "requiredDelayCompensationInputSourceClassId": 154,
+    "requiredProxyInputCount": 2,
+    "requireSkiaCompiler": true,
+    "controlContract": {
+      "schema": 1,
+      "shaderRole": "non-interactive-display",
+      "controls": [{
+        "parameter": "GAIN",
+        "widgetClass": 1687,
+        "drawOwners": ["native"],
+        "inputOwner": "native",
+        "knobSize": 3,
+        "gestures": ["drag", "reset"],
+        "defaultNormalized": 1.0
+      }]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+[package]
+name = "bitwig-document-codec"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-only"
+
+[[bin]]
+name = "bwmodule-parser"
+path = "src/main.rs"
+
+[dependencies]
+indexmap = { version = "2", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+thiserror = "2"
+uuid = { version = "1", features = ["serde"] }

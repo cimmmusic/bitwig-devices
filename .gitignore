@@ -1,0 +1,17 @@
+/.venv/
+/local/
+build/
+target/
+__pycache__/
+*.egg-info/
+*.class
+*.jar
+*.bwdevice
+*.bwmodulator
+*.bwmodule
+*.bwpreset
+*.bwproject
+*.nitrobin
+keys.json
+*.nitro-image
+

@@ -1,0 +1,18 @@
+component blueprint_gain
+{
+    audio_inport in;
+    audio_inport f32 gain = 1.0;
+
+    audio_outport out;
+    audio_outport f32<4> display;
+
+    process
+    {
+        f32 level = fmin(1.0, fmax(0.0, gain));
+        f32<> scaled = in * level;
+        out = scaled;
+
+        // Read local values so the display never creates an output dependency.
+        display = <fmin(1.0, fabs(scaled[0])), fmin(1.0, fabs(scaled[1])), level, 0.0>;
+    }
+}

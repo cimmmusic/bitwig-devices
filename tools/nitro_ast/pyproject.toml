@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bitwig-nitro-tools"
+version = "0.1.1+polarity.ast"
+description = "Pinned Nitro AST subset for bitwig.devices development"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Blake Bratcher" }]
+dependencies = []
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+bitwig_nitro = ["data/*.json"]
