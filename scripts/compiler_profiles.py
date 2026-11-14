@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import zlib
 
 PROFILES = {
     "windows-x86_64-bitwig-6.1.3": {
@@ -30,6 +31,14 @@ PROFILES = {
         "jarSha256": "a5c096a8ef95ac322149bb8e2bb2eb2a9806de6cb2af26b7eb3945876c9aad4f",
         "libsSha256": "8df006f8a6574b8eceee5bd355eb087fb66c430dc9b7202deedbae17df9af222",
         "bridgeSha256": "7f7c70e203a80f1f3bc2cdb725e80a4f01b3e98f2a87b56a124611fc56832be3",
+    },
+    "linux-x86_64-bitwig-6.1.7": {
+        "version": "6.1.7",
+        "platform": "linux-x86_64",
+        "jarSha256": "a3e52ddc94cfe69e08f75a96b2ee43b04a932d804948fa09c013ea7a04a43c44",
+        "libsSha256": "72a94668b2c1739c1b1c0a7bfaba56f4f1f78efaf0da4bb08fd9030bcde5081c",
+        "bridgeSha256": "4134383e2a0365af431ea97fc82371e979067b63c2ad6812a1439a076cc6fbeb",
+        "deflatedAst": True,
     },
 }
 
@@ -94,7 +103,8 @@ def compile_source(source: Path, output: Path, inputs_path: Path) -> dict:
     binary = output.read_bytes()
     try:
         from bitwig_nitro import decompile_nitrobin, serialize_nitrobin
-        stable = bool(binary) and serialize_nitrobin(decompile_nitrobin(binary)) == binary
+        ast_bytes = zlib.decompress(binary, -15) if profile.get("deflatedAst") else binary
+        stable = bool(ast_bytes) and serialize_nitrobin(decompile_nitrobin(ast_bytes)) == ast_bytes
     except Exception:
         output.unlink(missing_ok=True)
         raise

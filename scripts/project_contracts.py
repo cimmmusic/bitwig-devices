@@ -27,7 +27,10 @@ from pathlib import Path
 
 MANIFEST = "bitwig-project.json"
 # Platform -> overlay file name. A platform that is not listed uses the manifest.
-PLATFORM_CONTRACTS = {"macos-arm64": "bitwig-project.macos-6.1.3.json"}
+PLATFORM_CONTRACTS = {
+    "macos-arm64": "bitwig-project.macos-6.1.3.json",
+    "linux-x86_64": "bitwig-project.linux-6.1.7.json",
+}
 # Identity and content must be the same on every platform.
 OVERLAY_KEYS = frozenset({"extends", "target", "output"})
 
