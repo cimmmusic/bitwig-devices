@@ -6,9 +6,10 @@ Native Bitwig Studio devices by Cimm, made with polarity's
 ## Devices
 
 - **[VU Meter](devices/cimm-vu/)**: a stereo needle VU meter with VU, PPM and RMS
-  ballistics, L/R or M/S, peak hold and a clip LED. Audio passes through.
+  ballistics, L/R or M/S, peak hold and a clip LED, with its settings in Bitwig's
+  Inspector and a live mini view in the mixer. Audio passes through.
 
-[![VU Meter](devices/cimm-vu/previews/vu-0vu.png)](devices/cimm-vu/)
+[![VU Meter](devices/cimm-vu/previews/vu-meter.png)](devices/cimm-vu/)
 
 Mods for Bitwig's interface live in [bitwig-mods](https://github.com/cimmmusic/bitwig-mods).
 
