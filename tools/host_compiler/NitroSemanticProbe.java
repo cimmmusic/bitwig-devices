@@ -23,15 +23,24 @@ import java.util.ArrayList;
  * The obfuscated entry points below are bound to the pinned JAR hash.
  */
 public class NitroSemanticProbe {
+    // Obfuscated names differ per build and can collide (macOS 6.1.4 also has
+    // an unrelated azQ). -Dnitro.names=macos-6.1.4 selects the names from
+    // Patchbay's windows-6.1.3__macos-6.1.4 remap; the default is Windows 6.1.3.
+    static final boolean MACOS_614 = "macos-6.1.4".equals(System.getProperty("nitro.names"));
+
+    static Class<?> cls(String windows613, String macos614) throws ClassNotFoundException {
+        return Class.forName(MACOS_614 ? macos614 : windows613);
+    }
+
     public static void main(String[] args) throws Exception {
-        Class<?> flags = Class.forName("com.bitwig.nitro.Xf");
+        Class<?> flags = cls("com.bitwig.nitro.Xf", "com.bitwig.nitro.vna");
         Object noFlags = flags.getConstructors()[0].newInstance(
             false, false, false, false, false, false, false, false, false, false, false, false);
         // Compiler settings: revision, chunk size, block size, sample rate,
         // oversampling factor, FFT order, ..., zero-init, absolute paths, flags.
         // A 1024-frame chunk turned audio ports into f32<1024> and rejected the
         // host-accepted Growl and Normalizer sources; 32 accepts them.
-        Object settings = Class.forName("com.bitwig.nitro.EWg").getConstructors()[0]
+        Object settings = cls("com.bitwig.nitro.EWg", "com.bitwig.nitro.CHR").getConstructors()[0]
             .newInstance(0, 32, 1, 44100, 1.0, 0, 0, false, false, noFlags);
 
         // Plain-text code source of a Nitro atom. Its outer atom is only used
@@ -40,13 +49,13 @@ public class NitroSemanticProbe {
         unsafeField.setAccessible(true);
         Object unsafe = unsafeField.get(null);
         Object atom = unsafe.getClass().getMethod("allocateInstance", Class.class)
-            .invoke(unsafe, Class.forName("azQ"));
-        Constructor<?> textSource = Class.forName("BYC").getDeclaredConstructors()[0];
+            .invoke(unsafe, cls("azQ", "BgP"));
+        Constructor<?> textSource = cls("BYC", "FRG").getDeclaredConstructors()[0];
         textSource.setAccessible(true);
 
-        Class<?> codeSource = Class.forName("com.bitwig.nitro.TJZ");
+        Class<?> codeSource = cls("com.bitwig.nitro.TJZ", "com.bitwig.nitro.IPO");
         Method compile = null;
-        for (Method method : Class.forName("com.bitwig.nitro.PI").getDeclaredMethods()) {
+        for (Method method : cls("com.bitwig.nitro.PI", "com.bitwig.nitro.FDA").getDeclaredMethods()) {
             Class<?>[] types = method.getParameterTypes();
             if (Modifier.isStatic(method.getModifiers()) && types.length == 8
                     && types[0] == String.class && types[1] == codeSource) {
@@ -62,7 +71,8 @@ public class NitroSemanticProbe {
         Field llvmText = null;
         if (llvmOutput != null) {
             // Exact Windows 6.1.3 compiler result field holding emitted LLVM text.
-            llvmText = Class.forName("com.bitwig.nitro.O2W").getDeclaredField("HEY");
+            String llvmField = MACOS_614 ? "Hnt" : "HEY";
+            llvmText = cls("com.bitwig.nitro.O2W", "com.bitwig.nitro.jiw").getDeclaredField(llvmField);
             llvmText.setAccessible(true);
         }
         for (int index = 0; index < args.length; index++) {

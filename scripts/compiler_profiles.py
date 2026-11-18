@@ -32,6 +32,21 @@ PROFILES = {
         "libsSha256": "8df006f8a6574b8eceee5bd355eb087fb66c430dc9b7202deedbae17df9af222",
         "bridgeSha256": "7f7c70e203a80f1f3bc2cdb725e80a4f01b3e98f2a87b56a124611fc56832be3",
     },
+    "macos-arm64-bitwig-6.1.4": {
+        "version": "6.1.4",
+        "platform": "macos-arm64",
+        "jarSha256": "5c2b1895bbb9e7d08d9216de421985bb1f24b2ee62762c9451b4fe847df2469f",
+        "libsSha256": "8df006f8a6574b8eceee5bd355eb087fb66c430dc9b7202deedbae17df9af222",
+        "bridgeSha256": "7f7c70e203a80f1f3bc2cdb725e80a4f01b3e98f2a87b56a124611fc56832be3",
+    },
+    "macos-arm64-bitwig-6.1.7": {
+        "version": "6.1.7",
+        "platform": "macos-arm64",
+        "jarSha256": "6024752847797eb41e6fbc91e081211937931cc452a695ab78226321cefdac8d",
+        "libsSha256": "f00d33c0b8d74025b02e5268ad61c055c8dbda96b4bb43fd40b605b853576c68",
+        "bridgeSha256": "7f7c70e203a80f1f3bc2cdb725e80a4f01b3e98f2a87b56a124611fc56832be3",
+        "deflatedAst": True,
+    },
     "linux-x86_64-bitwig-6.1.7": {
         "version": "6.1.7",
         "platform": "linux-x86_64",

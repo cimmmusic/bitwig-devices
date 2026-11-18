@@ -1831,7 +1831,13 @@ def inspect_panel_heights(document: dict[str, Any]) -> list[Finding]:
                 error("PANEL001", path, "Device-chain panel cannot be resolved.")
                 continue
             height = field_by_suffix(panel, "height#6233").get("value")
-            if type(height) is not int or height != PROFILE_PANEL_HEIGHT:
+            # The Inspector panel lives in Bitwig's Inspector, not the device
+            # chain (Polarity's Multiband FX-4 ships a 7-row one); only bound it.
+            if field_by_suffix(panel, "name#6211").get("value") == "Inspector":
+                if type(height) is not int or not 1 <= height <= 120:
+                    error("PANEL002", path, f"Inspector panel height must be 1..120 grid rows; found {height!r}.")
+                    continue
+            elif type(height) is not int or height != PROFILE_PANEL_HEIGHT:
                 error("PANEL002", path, f"Device-chain height must be {PROFILE_PANEL_HEIGHT} grid rows for {SUPPORTED_PROFILE}; found {height!r}. Reflow controls instead of expanding the chain.")
                 continue
             root = resolve(field_by_suffix(panel, "root_item#6212"))
@@ -2138,6 +2144,10 @@ def semantic_check(
     with tempfile.TemporaryDirectory(prefix="nitro-semantic-", dir=scratch) as classes:
         classpath = os.pathsep.join((classes, compiler_inputs["jar"], compiler_inputs["libs"]))
         properties = [f"-DinstallationRoot={install}"]
+        if compiler_inputs.get("profileId") == "macos-arm64-bitwig-6.1.4":
+            # libs.jar sits in <App>.app/Contents/Java; Bitwig's macOS paths
+            # resolve Contents/Resources/... from the .app folder itself.
+            properties = [f"-DinstallationRoot={install.parent}", "-Dnitro.names=macos-6.1.4"]
         if verify_llvm:
             properties.append(f"-Dnitro.llvm.output={classes}")
         try:

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "projectId": "cimm.vu",
+  "name": "VU Meter",
+  "surface": "device",
+  "target": {
+    "bitwigVersion": "6.1.7",
+    "platform": "macos-arm64"
+  },
+  "identity": {
+    "uuid": "262531b6-714c-4b77-8325-f4bbf5fc5d7f",
+    "creator": "Cimm",
+    "category": "Audio FX"
+  },
+  "presentation": {
+    "type": "audio-fx",
+    "description": "Native stereo needle VU meter in the spirit of Klanghelm VUMT: VU / PPM / RMS ballistics, L/R or M/S, adjustable overshoot, peak hold with readouts and a smart clip LED. Audio passes through."
+  },
+  "sources": {
+    "nitro": [
+      "vu.nitro"
+    ],
+    "sksl": [
+      "panel.sksl"
+    ]
+  },
+  "adapter": {
+    "type": "external-builder",
+    "argv": [
+      "python",
+      "{workspace}/build.py",
+      "--out",
+      "{output}"
+    ]
+  },
+  "output": {
+    "path": "build/macos-6.1.7/VU Meter.bwdevice",
+    "libraryPath": "VU Meter.bwdevice"
+  },
+  "preflight": {
+    "profile": "bitwig-6.1.3-hybrid",
+    "maxDrawingVectors": 1,
+    "requiredAudioInputSourceClassId": 1371,
+    "requiredDelayCompensationInputSourceClassId": 154,
+    "requiredProxyInputCount": 2,
+    "requireSkiaCompiler": true,
+    "nitroComponents": [
+      {
+        "source": "vu.nitro",
+        "componentName": "vu_meter",
+        "instances": 1,
+        "isMainAudio": true,
+        "expectedInputs": 11,
+        "expectedOutputs": 6,
+        "expectedAudioOutputs": 2,
+        "maxDrawingVectors": 1
+      }
+    ]
+  }
+}

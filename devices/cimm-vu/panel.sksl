@@ -1,0 +1,185 @@
+// VU Meter panel, styled after the user's mockups (~/Desktop/VU.png, vu 2.png).
+// All text (scale numbers, L/R or M/S, readouts) is native Bitwig labels laid over this drawing:
+// two dark cards, grey scale with an orange 0..+6 zone, cream needle.
+// audioLow = needle L, needle R, hold L + 4 * led L, hold R + 4 * led R.
+// Needle and hold values are amplitude relative to 0 VU (1.0 = 0 VU).
+uniform float4 audioLow;
+
+// One meter card in design units (taken from the mockup's pixel layout).
+const float W = 480.;
+const float H = 298.;
+const float GAP = 22.;
+const float FOOT = 30.;               // space under the cards, ending in a divider line
+// Scale arc centred on the needle pivot (like a watch face), so the needle
+// always points exactly through each tick and number.
+const float2 PIVOT = float2(240., 296.);
+const float2 ARC_C = PIVOT;
+const float ARC_R = 188.;
+const float ARC_HALF = 0.95;         // half the arc span, radians (54 degrees)
+
+const float3 BG = float3(.196, .196, .196);      // #323232
+const float3 CARD = float3(.135, .135, .14);
+const float3 BORDER = float3(.30, .30, .31);
+const float3 INK = float3(.80, .80, .80);
+const float3 ORANGE = float3(.95, .55, .17);
+const float3 CREAM = float3(.95, .91, .82);
+
+float cover(float d, float px) {
+    return clamp(0.5 - d / px, 0., 1.);
+}
+
+float box(float2 p, float2 c, float2 h, float r) {
+    float2 q = abs(p - c) - h + r;
+    return length(max(q, 0.)) + min(max(q.x, q.y), 0.) - r;
+}
+
+float seg(float2 p, float2 a, float2 b) {
+    float2 pa = p - a;
+    float2 ba = b - a;
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0., 1.);
+    return length(pa - ba * h);
+}
+
+// ---- Scale ------------------------------------------------------------
+// Scale position 0..1 along the arc for a VU value in dB (from the mockup's spacing).
+float scaleT(float db) {
+    if (db <= -20.) return 0. + (db + 20.) * .0105;
+    if (db <= -10.) return (db + 20.) * .0105;
+    if (db <= -7.) return .105 + (db + 10.) * .0443;
+    if (db <= -5.) return .238 + (db + 7.) * .0665;
+    if (db <= -3.) return .371 + (db + 5.) * .081;
+    if (db <= -1.) return .533 + (db + 3.) * .0715;
+    if (db <= 0.) return .676 + (db + 1.) * .105;
+    if (db <= 3.) return .781 + db * .035;
+    return .886 + (db - 3.) * .038;
+}
+
+float angleAt(float t) {
+    return -ARC_HALF + 2. * ARC_HALF * t;
+}
+
+float2 arcPoint(float t, float r) {
+    float a = angleAt(t);
+    return ARC_C + float2(sin(a), -cos(a)) * r;
+}
+
+float dbOf(float amplitude) {
+    return 20. * log(max(amplitude, .0001)) * .4342945;
+}
+
+// Needle value to scale position, pinned just past both ends.
+float needleT(float amplitude) {
+    return clamp(scaleT(dbOf(amplitude)), -.025, 1.03);
+}
+
+float3 meter(float2 p, float needle, float holdLed, float px) {
+    float led = floor(holdLed / 4. + .001);
+    float held = holdLed - 4. * led;
+
+    float3 col = BG;
+    float card = box(p, float2(W, H) * .5, float2(W, H) * .5 - 1., 10.);
+    float inCard = cover(card, px);
+    col = mix(col, CARD, inCard);
+    col = mix(col, BORDER, cover(abs(card + 1.) - 1., px));
+
+    float tNeedle = needleT(needle);
+    float level = clamp(tNeedle, 0., 1.);
+
+    // Warm glow under the arc, following the needle.
+    float2 tipNow = arcPoint(tNeedle, ARC_R);
+    float2 g = (p - (tipNow * .5 + float2(W * .5, 200.) * .5)) / float2(260., 120.);
+    float under = clamp((ARC_R - length(p - ARC_C)) / 60., 0., 1.);
+    float glow = exp(-dot(g, g) * 1.8) * (.07 + .16 * level) * under;
+    col += ORANGE * glow * inCard;
+
+    // Arc: grey up to 0 VU, thick orange from 0 to +6.
+    float2 d = p - ARC_C;
+    float r = length(d);
+    float a = atan(d.x, -d.y);
+    float zeroA = angleAt(scaleT(0.));
+    float onArc = step(-ARC_HALF, a) * step(a, ARC_HALF);
+    col = mix(col, INK * .9, cover(abs(r - ARC_R) - 1.2, px) * onArc * step(a, zeroA));
+    col = mix(col, ORANGE, cover(abs(r - ARC_R - 2.) - 3.5, px) * onArc * step(zeroA, a));
+
+    // End hooks (the short inward strokes at both ends of the arc).
+    float hookL = seg(p, arcPoint(0., ARC_R), arcPoint(0., ARC_R - 16.)) - 1.3;
+    col = mix(col, INK * .9, cover(hookL, px));
+    float hookR = seg(p, arcPoint(1., ARC_R + 2.), arcPoint(1., ARC_R - 16.)) - 3.;
+    col = mix(col, ORANGE, cover(hookR, px));
+
+    // Ticks: majors at the labels, minors in between.
+    for (int i = 0; i < 17; i++) {
+        float db = -20.;
+        bool major = true;
+        if (i == 1) { db = -15.; major = false; }
+        if (i == 2) db = -10.;
+        if (i == 3) { db = -8.5; major = false; }
+        if (i == 4) db = -7.;
+        if (i == 5) { db = -6.; major = false; }
+        if (i == 6) db = -5.;
+        if (i == 7) { db = -4.; major = false; }
+        if (i == 8) db = -3.;
+        if (i == 9) { db = -2.; major = false; }
+        if (i == 10) db = -1.;
+        if (i == 11) { db = -.5; major = false; }
+        if (i == 12) db = 0.;
+        if (i == 13) { db = 1.5; major = false; }
+        if (i == 14) db = 3.;
+        if (i == 15) { db = 4.5; major = false; }
+        if (i == 16) db = 6.;
+        if (i == 0 || i == 16) continue;         // the end hooks mark -20 and +6
+        float t = scaleT(db);
+        float len = major ? 22. : 14.;
+        float tick = seg(p, arcPoint(t, ARC_R + 1.), arcPoint(t, ARC_R + 1. + len)) - (major ? 1.4 : 1.1);
+        bool hot = db >= 0.;
+        col = mix(col, hot ? ORANGE : INK * .85, cover(tick, px) * (hot && !major ? 0. : 1.));
+        if (hot && major) col = mix(col, ORANGE, cover(seg(p, arcPoint(t, ARC_R + 1.), arcPoint(t, ARC_R + 21.)) - 2., px));
+    }
+
+    // Clip LED (scale numbers, channel letters and readouts are native Bitwig labels).
+    float2 ledC = float2(64., 34.);
+    float ledD = length(p - ledC) - 6.;
+    float3 ledCol = led > 1.5 ? float3(1., .18, .12) : (led > .5 ? float3(1., .70, .15) : float3(.22, .22, .23));
+    col = mix(col, ledCol, cover(ledD, px));
+    if (led > .5) col += ledCol * .30 * exp(-max(ledD, 0.) * .12) * step(0., ledD);
+
+    // Peak-hold needle: thin orange, only when it sits above the live needle.
+    float tHold = needleT(held);
+    if (tHold > tNeedle + .004) {
+        float hold = seg(p, arcPoint(tHold, ARC_R - 26.), arcPoint(tHold, ARC_R - 4.)) - 2.;
+        col = mix(col, ORANGE, cover(hold, px) * inCard);
+    }
+
+    // Needle from the pivot to just past the arc, with a soft shadow.
+    float2 tip = arcPoint(tNeedle, ARC_R + 12.);
+    float2 dir = normalize(tip - PIVOT);
+    float2 base = PIVOT + dir * 24.;
+    float shadow = seg(p - float2(4., 3.), base, tip) - 2.;
+    col *= 1. - .35 * clamp(1. - shadow / 6., 0., 1.) * inCard;
+    col = mix(col, CREAM, cover(seg(p, base, tip) - 1.7, px) * inCard);
+
+    // Pivot: grey disc with an orange cap, cut by the card's bottom edge.
+    float disc = length(p - (PIVOT + float2(0., 14.))) - 44.;
+    col = mix(col, float3(.36, .36, .37), cover(disc, px) * inCard);
+    float cap = length(p - (PIVOT + float2(0., 12.))) - 22.;
+    col = mix(col, ORANGE, cover(cap, px) * inCard);
+
+    return col;
+}
+
+half4 main(float2 fragCoord) {
+    float2 design = float2(W * 2. + GAP, H + FOOT);
+    float2 p = fragCoord / iResolution.xy * design;
+    float px = design.x / iResolution.x;
+
+    float3 col = BG;
+    if (p.y > H) {
+        // Divider between the meters and the knob row.
+        col = mix(col, float3(.30, .30, .31), cover(abs(p.y - (H + FOOT - 3.)) - 1.2, px));
+    } else if (p.x < W) {
+        col = meter(p, audioLow.x, audioLow.z, px);
+    } else if (p.x >= W + GAP) {
+        col = meter(p - float2(W + GAP, 0.), audioLow.y, audioLow.w, px);
+    }
+    return half4(half3(col), 1.);
+}

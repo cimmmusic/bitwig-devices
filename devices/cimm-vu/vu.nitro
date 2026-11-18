@@ -1,0 +1,177 @@
+// VU Meter: stereo meter in the spirit of Klanghelm VUMT, native to Bitwig.
+// Audio passes through, multiplied by Trim (and summed to mono with Force Mono).
+//
+// Meter types (MODE):
+//   0 VU   second-order needle movement (mass, spring, damping) driven by the
+//          full-wave rectified signal. 13.1 rad/s = 300 ms rise at 1.5 %
+//          overshoot; OVERSHOOT sets the damping. Scaled by pi / 2 so a sine
+//          peaking at the Ref level reads 0 VU.
+//   1 PPM  DIN-style peak programme meter: 1.7 ms attack, 20 dB / 1.5 s fall.
+//          A sine peaking at Ref reads 0.
+//   2 RMS  300 ms RMS with AES-17 (+3 dB) so a sine peaking at Ref reads 0.
+// CHANNELS: 0 = L / R, 1 = M / S. The clip LED always watches the L / R peaks.
+//
+// Needle values are amplitude relative to 0 VU (1.0 = 0 VU).
+// Display lanes: needle 1, needle 2, then hold + 4 * led per meter
+// (led 0 off, 1 amber above CLIP_LED dBFS, 2 red at 0 dBFS or over).
+// read_1 / read_2 send the held (or current) reading in dB about 20 times a second;
+// needle_1 / needle_2 send the live needle in dB about 30 times a second (mixer mini view).
+component vu_meter
+{
+    audio_inport in;
+    audio_inport f32 ref = -18.0;
+    audio_inport f32 trim = 0.0;
+    audio_inport f32 overshoot = 0.015;
+    audio_inport f32 hold = 2.0;
+    audio_inport f32 led_db = -3.0;
+    value_inport i32 mode;
+    value_inport i32 channels;
+    value_inport bool hold_on;
+    value_inport bool force_mono;
+    value_inport bool show_values;
+
+    audio_outport out;
+    audio_outport f32<4> display;
+    value_outport f32 read_1 = -60.0;
+    value_outport f32 read_2 = -60.0;
+    value_outport f32 needle_1 = -60.0;
+    value_outport f32 needle_2 = -60.0;
+
+    f32 p1 = 0.0;
+    f32 v1 = 0.0;
+    f32 p2 = 0.0;
+    f32 v2 = 0.0;
+    f32 s1 = 0.0;
+    f32 s2 = 0.0;
+    f32 h1 = 0.0;
+    f32 h2 = 0.0;
+    f32 ht1 = 0.0;
+    f32 ht2 = 0.0;
+    f32 led1 = 0.0;
+    f32 led2 = 0.0;
+    f32 lt1 = 0.0;
+    f32 lt2 = 0.0;
+    f32 sendCount = 0.0;
+    f32 needleCount = 0.0;
+
+    process
+    {
+        f32 sr = EngineContext.samplerate.f32;
+        f32 dt = 1.0 / sr;
+
+        f32 trimDb = fmin(24.0, fmax(-24.0, trim));
+        f32 gain = exp(trimDb * 0.1151293);
+        f32<> y = in * gain;
+        f32 l = y[0];
+        f32 r = y[1];
+        if (force_mono) {
+            f32 m = 0.5 * (l + r);
+            l = m;
+            r = m;
+            y = y * 0.0 + m;
+        }
+        out = y;
+
+        // Signals the two meters read.
+        f32 a = l;
+        f32 b = r;
+        if (channels == 1) {
+            a = (l + r) * 0.7071068;
+            b = (l - r) * 0.7071068;
+        }
+        f32 ra = fabs(a);
+        f32 rb = fabs(b);
+
+        f32 refDb = fmin(0.0, fmax(-40.0, ref));
+        f32 invRef = 1.0 / exp(refDb * 0.1151293);
+
+        if (mode == 1) {
+            // PPM: fast attack, slow logarithmic fall.
+            f32 att = 1.0 - exp(-1.0 / (0.0017 * sr));
+            f32 fall = exp(-2.3025851 / (1.5 * sr));
+            f32 ua = ra * invRef;
+            f32 ub = rb * invRef;
+            if (ua > p1) { p1 = p1 + (ua - p1) * att; } else { p1 = p1 * fall; }
+            if (ub > p2) { p2 = p2 + (ub - p2) * att; } else { p2 = p2 * fall; }
+            v1 = 0.0;
+            v2 = 0.0;
+        } else if (mode == 2) {
+            // RMS: 300 ms mean square, AES-17 +3 dB.
+            f32 kr = 1.0 - exp(-1.0 / (0.3 * sr));
+            s1 = s1 + (a * a - s1) * kr;
+            s2 = s2 + (b * b - s2) * kr;
+            p1 = sqrt(fmax(0.0, s1)) * 1.4142136 * invRef;
+            p2 = sqrt(fmax(0.0, s2)) * 1.4142136 * invRef;
+            v1 = 0.0;
+            v2 = 0.0;
+        } else {
+            // VU: second-order needle movement.
+            f32 os = fmin(0.25, fmax(0.0001, overshoot));
+            f32 lo = log(os);
+            f32 zeta = fmin(1.0, (0.0 - lo) / sqrt(9.869604 + lo * lo));
+            f32 w0 = 13.1;
+            f32 k = w0 * w0 * dt;
+            f32 c = 2.0 * zeta * w0 * dt;
+            f32 scale = 1.5707963 * invRef;
+            v1 = v1 + (ra * scale - p1) * k - v1 * c;
+            p1 = p1 + v1 * dt;
+            v2 = v2 + (rb * scale - p2) * k - v2 * c;
+            p2 = p2 + v2 * dt;
+        }
+        if (p1 < 0.0) { p1 = 0.0; v1 = 0.0; }
+        if (p1 > 2.2) { p1 = 2.2; v1 = 0.0; }
+        if (p2 < 0.0) { p2 = 0.0; v2 = 0.0; }
+        if (p2 > 2.2) { p2 = 2.2; v2 = 0.0; }
+
+        // Peak hold: keep the highest reading for HOLD seconds, then fall.
+        f32 holdSamples = fmin(10.0, fmax(0.0, hold)) * sr;
+        f32 holdFall = exp(-1.0 / (0.4 * sr));
+        if (!hold_on) {
+            h1 = p1;
+            h2 = p2;
+        } else {
+            if (p1 >= h1) { h1 = p1; ht1 = holdSamples; }
+            else if (ht1 > 0.0) { ht1 = ht1 - 1.0; }
+            else { h1 = p1 + (h1 - p1) * holdFall; }
+            if (p2 >= h2) { h2 = p2; ht2 = holdSamples; }
+            else if (ht2 > 0.0) { ht2 = ht2 - 1.0; }
+            else { h2 = p2 + (h2 - p2) * holdFall; }
+        }
+
+        // Smart clip LED on the L / R sample peaks, held for 1.5 s.
+        f32 amber = exp(fmin(0.0, fmax(-24.0, led_db)) * 0.1151293);
+        f32 pl = fabs(l);
+        f32 pr = fabs(r);
+        f32 ledTime = 1.5 * sr;
+        if (pl >= 0.999) { led1 = 2.0; lt1 = ledTime; }
+        else if (pl > amber && led1 < 1.5) { led1 = 1.0; lt1 = ledTime; }
+        else if (lt1 > 0.0) { lt1 = lt1 - 1.0; }
+        else { led1 = 0.0; }
+        if (pr >= 0.999) { led2 = 2.0; lt2 = ledTime; }
+        else if (pr > amber && led2 < 1.5) { led2 = 1.0; lt2 = ledTime; }
+        else if (lt2 > 0.0) { lt2 = lt2 - 1.0; }
+        else { led2 = 0.0; }
+
+        display = <p1, p2, fmin(h1, 2.2) + 4.0 * led1, fmin(h2, 2.2) + 4.0 * led2>;
+
+        // Native readouts: reading in dB relative to 0 VU, about 20 times a second.
+        sendCount = sendCount + 1.0;
+        if (sendCount >= 0.05 * sr) {
+            sendCount = 0.0;
+            f32 d1 = fmax(-60.0, 8.685889 * log(fmax(h1, 0.000001)));
+            f32 d2 = fmax(-60.0, 8.685889 * log(fmax(h2, 0.000001)));
+            send read_1(d1);
+            send read_2(d2);
+        }
+
+        // Live needle positions for the mixer mini view, about 30 times a second.
+        needleCount = needleCount + 1.0;
+        if (needleCount >= 0.033 * sr) {
+            needleCount = 0.0;
+            f32 n1 = fmax(-60.0, 8.685889 * log(fmax(p1, 0.000001)));
+            f32 n2 = fmax(-60.0, 8.685889 * log(fmax(p2, 0.000001)));
+            send needle_1(n1);
+            send needle_2(n2);
+        }
+    }
+}
