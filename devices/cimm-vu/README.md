@@ -54,5 +54,4 @@ same way as the blueprint device: see [BUILD.md](../../docs/BUILD.md) and
 
 Opening a project with VU Meter in a Bitwig that doesn't have it installed can crash
 Bitwig. Use [`scripts/share_safe_copy.py`](../../scripts/share_safe_copy.py) to make
-a copy of a project without it, or install the
-[Missing Device Guard](https://github.com/cimmmusic/bitwig-mods/tree/perf/missing-device-guard) mod.
+a copy of a project without it.
