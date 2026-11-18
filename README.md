@@ -1,4 +1,20 @@
-# Bitwig Device Blueprints
+# Cimm's Bitwig devices
+
+Native Bitwig Studio devices by Cimm, made with polarity's
+[Bitwig device blueprint](https://github.com/polarity/bitwig-devices-blueprint).
+
+## Devices
+
+- **[VU Meter](devices/cimm-vu/)**: a stereo needle VU meter with VU, PPM and RMS
+  ballistics, L/R or M/S, peak hold and a clip LED. Audio passes through.
+
+[![VU Meter](devices/cimm-vu/previews/vu-0vu.png)](devices/cimm-vu/)
+
+Mods for Bitwig's interface live in [bitwig-mods](https://github.com/cimmmusic/bitwig-mods).
+
+---
+
+## About the blueprint
 
 A small, source-built Bitwig Studio Audio FX for people and coding agents.
 **Blueprint Gain** combines a native gain knob, original stereo DSP in Nitro,
