@@ -5,11 +5,11 @@ Native Bitwig Studio devices by Cimm, made with polarity's
 
 ## Devices
 
-| Device | What it does | Download |
-| --- | --- | --- |
-| [VU Meter](devices/cimm-vu/) | Stereo needle VU meter: VU, PPM and RMS ballistics, L/R or M/S, peak hold, clip LED. Settings in the Inspector and a live mini view in the mixer. | [Bitwig 6.1.7](https://github.com/cimmmusic/bitwig-devices/releases/download/downloads/VU-Meter-macos-6.1.7.zip) · [Bitwig 6.1.4](https://github.com/cimmmusic/bitwig-devices/releases/download/downloads/VU-Meter-macos-6.1.4.zip) |
+| Device | Type | Description | Download |
+|---|---|---|---|
+| [VU Meter](devices/cimm-vu) | Audio FX | Stereo needle VU meter: VU, PPM and RMS ballistics, L/R or M/S, peak hold, clip LED. Settings in the Inspector and a live mini view in the mixer. | [Bitwig 6.1.7](https://github.com/cimmmusic/bitwig-devices/releases/download/downloads/VU-Meter-macos-6.1.7.zip) · [Bitwig 6.1.4](https://github.com/cimmmusic/bitwig-devices/releases/download/downloads/VU-Meter-macos-6.1.4.zip) |
 
-Builds are for macOS. All downloads: [Releases](https://github.com/cimmmusic/bitwig-devices/releases/tag/downloads).
+Builds are for macOS (not yet tested on Windows). The finished device files are also in [Bitwig-6.1.7](Bitwig-6.1.7) and [Bitwig-6.1.4](Bitwig-6.1.4), where Patchbay Launcher finds them: add `cimmmusic/bitwig-devices` as a Devices source. All downloads: [Releases](https://github.com/cimmmusic/bitwig-devices/releases/tag/downloads).
 
 [![VU Meter](devices/cimm-vu/previews/vu-meter.png)](devices/cimm-vu/)
 

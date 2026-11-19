@@ -15,3 +15,7 @@ __pycache__/
 keys.json
 *.nitro-image
 
+
+# Published device builds read by Patchbay Launcher
+!/Bitwig-*/
+!/Bitwig-*/*.bwdevice
